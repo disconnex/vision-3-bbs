@@ -209,7 +209,7 @@ func (st *fileListState) handleFileView() (logoff bool, err error) {
 	}
 	fileToView := st.filesOnPage[viewIndex]
 	send := st.e.zipLabSender(st.s, st.terminal, &fileToView, st.currentUser, st.userManager, st.nodeNumber, st.sessionStartTime, st.outputMode)
-	viewFileByRecord(st.e, st.s, st.terminal, &fileToView, st.outputMode, st.termWidth, st.termHeight, send)
+	viewFileByRecord(st.e, st.s, st.terminal, st.currentUser, &fileToView, st.outputMode, st.termWidth, st.termHeight, send)
 	return false, nil
 }
 

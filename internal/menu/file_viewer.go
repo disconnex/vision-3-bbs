@@ -155,7 +155,7 @@ func runViewFile(c *cmdCtx, args string) (*user.User, string, error) {
 		if termHeight <= 0 {
 			_, termHeight = getTerminalSize(s)
 		}
-		e.displayTextWithPaging(s, terminal, filePath, record.Filename, outputMode, termHeight)
+		e.displayTextWithPaging(s, terminal, currentUser, filePath, record.Filename, outputMode, termHeight)
 	}
 
 	return currentUser, "", nil
@@ -181,14 +181,14 @@ func runTypeTextFile(c *cmdCtx, args string) (*user.User, string, error) {
 	if termHeight <= 0 {
 		_, termHeight = getTerminalSize(s)
 	}
-	e.displayTextWithPaging(s, terminal, filePath, record.Filename, outputMode, termHeight)
+	e.displayTextWithPaging(s, terminal, currentUser, filePath, record.Filename, outputMode, termHeight)
 
 	return currentUser, "", nil
 }
 
 // viewFileByRecord displays a file given its record, used from the file
 // lists: archives open in ZipLab, extracting members through send.
-func viewFileByRecord(e *MenuExecutor, s ssh.Session, terminal *term.Terminal, record *file.FileRecord, outputMode ansi.OutputMode, termWidth int, termHeight int, send ziplab.SendFunc) {
+func viewFileByRecord(e *MenuExecutor, s ssh.Session, terminal *term.Terminal, u *user.User, record *file.FileRecord, outputMode ansi.OutputMode, termWidth int, termHeight int, send ziplab.SendFunc) {
 	filePath, err := e.FileMgr.GetFilePath(record.ID)
 	if err != nil {
 		slog.Error("failed to get path for file", "id", record.ID, "error", err)
@@ -203,7 +203,7 @@ func viewFileByRecord(e *MenuExecutor, s ssh.Session, terminal *term.Terminal, r
 		if termHeight <= 0 {
 			_, termHeight = getTerminalSize(s)
 		}
-		e.displayTextWithPaging(s, terminal, filePath, record.Filename, outputMode, termHeight)
+		e.displayTextWithPaging(s, terminal, u, filePath, record.Filename, outputMode, termHeight)
 	}
 }
 
@@ -213,8 +213,9 @@ func viewFileByRecord(e *MenuExecutor, s ssh.Session, terminal *term.Terminal, r
 // a user points the viewer at a large binary or log file.
 const maxTextFilePagingBytes = 4 * 1024 * 1024 // 4 MB
 
-// displayTextWithPaging shows text file contents with paging on the terminal.
-func (e *MenuExecutor) displayTextWithPaging(s ssh.Session, terminal *term.Terminal, filePath string, filename string, outputMode ansi.OutputMode, termHeight int) {
+// displayTextWithPaging shows text file contents to u, a screen at a time
+// unless u has turned More prompts off (see morePager).
+func (e *MenuExecutor) displayTextWithPaging(s ssh.Session, terminal *term.Terminal, u *user.User, filePath string, filename string, outputMode ansi.OutputMode, termHeight int) {
 	fi, statErr := os.Stat(filePath)
 	if statErr == nil && fi.Size() > maxTextFilePagingBytes {
 		slog.Warn("file too large for text paging, refusing to load", "file", filePath, "bytes", fi.Size())
@@ -253,12 +254,9 @@ func (e *MenuExecutor) displayTextWithPaging(s ssh.Session, terminal *term.Termi
 
 	e.writeStringf(terminal, outputMode, e.Strings().FileViewingHeader, sanitizeControlChars(filename))
 
-	linesPerPage := termHeight - 4
-	if linesPerPage < 5 {
-		linesPerPage = 5
-	}
-
-	lineCount := 0
+	// The header and the prompt take the other rows. The pager keeps the
+	// text pager's own prompt, so a board's wording for it stays.
+	pager := e.newMorePager(s, terminal, outputMode, u, termHeight, 4, e.Strings().FileMorePrompt)
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	scanner.Buffer(make([]byte, 4096), 4096)
 
@@ -274,13 +272,8 @@ func (e *MenuExecutor) displayTextWithPaging(s ssh.Session, terminal *term.Termi
 		// Going through WriteProcessedBytes would re-interpret the bytes and
 		// produce '?' for byte pairs that form false UTF-8 sequences.
 		_, _ = terminal.Write(lineBuf) // best-effort display
-		lineCount++
-
-		if lineCount >= linesPerPage {
-			if !e.pauseMore(s, terminal, outputMode, e.Strings().FileMorePrompt) {
-				return
-			}
-			lineCount = 0
+		if !pager.Line() {
+			return
 		}
 	}
 

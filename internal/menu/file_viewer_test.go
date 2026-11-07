@@ -368,7 +368,7 @@ func TestViewFileByRecordMissingPath(t *testing.T) {
 	env := newMenuEnv(t)
 	rec := &file.FileRecord{ID: uuid.New(), AreaID: 99, Filename: "GONE.TXT"}
 	r := env.run(func(c *cmdCtx, _ string) (*user.User, string, error) {
-		viewFileByRecord(c.e, c.s, c.terminal, rec, c.outputMode, 80, 0, nil)
+		viewFileByRecord(c.e, c.s, c.terminal, nil, rec, c.outputMode, 80, 0, nil)
 		return nil, "", nil
 	}, env.caller, "", "")
 	if !strings.Contains(r.text(), stripPipes(env.e.Strings().FileLocateError)) {
@@ -393,7 +393,7 @@ func TestDisplayTextWithPagingRefusesHugeFile(t *testing.T) {
 		strs := *c.e.Strings()
 		strs.FileViewingHeader, strs.FileOpenError = "Viewing %s", "OPEN ERROR"
 		c.e.SetStrings(strs)
-		c.e.displayTextWithPaging(c.s, c.terminal, p, "big.txt", c.outputMode, 24)
+		c.e.displayTextWithPaging(c.s, c.terminal, nil, p, "big.txt", c.outputMode, 24)
 		return nil, "", nil
 	}, env.caller, "", "")
 	if !r.has("OPEN ERROR") || r.has("Viewing") {
@@ -433,7 +433,7 @@ func TestDisplayTextWithPaging_ShowsEveryLineAndPagesCorrectly(t *testing.T) {
 	e := &MenuExecutor{}
 	e.SetStrings(config.StringsConfig{FileViewingHeader: "Viewing: %s\r\n", FileEndOfFile: "<EOF>",
 		FileMorePrompt: "<MORE>", FilePausePrompt: "<PAUSE>", FileOpenError: "<OPENERR>"})
-	e.displayTextWithPaging(ts, terminal, textPath, "readme.txt", ansi.OutputModeCP437, 9)
+	e.displayTextWithPaging(ts, terminal, nil, textPath, "readme.txt", ansi.OutputModeCP437, 9)
 
 	out := ts.output()
 	prev := -1
@@ -473,7 +473,7 @@ func TestViewMisnamedArchive(t *testing.T) {
 					if err != nil {
 						return nil, "", err
 					}
-					viewFileByRecord(c.e, c.s, c.terminal, rec, c.outputMode, 80, 24, nil)
+					viewFileByRecord(c.e, c.s, c.terminal, nil, rec, c.outputMode, 80, 24, nil)
 					return c.currentUser, "", nil
 				}
 			}

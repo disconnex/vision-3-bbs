@@ -759,5 +759,10 @@ func stringCatalog() []StringEntry {
 		{Label: "ACS Test: Bad Number", Key: "acsTestBadNumber", Description: "Shown when a minutes answer is not a whole number"},
 		{Label: "ACS Test: Bad Time", Key: "acsTestBadTime", Description: "Shown when the time can't be read"},
 		{Label: "ACS Test: Denied", Key: "acsTestDenied", Description: "Shown in the user editor when someone below sysOpLevel asks for the tester"},
+
+		// The shared More prompt (#424)
+		{Label: "More: Prompt", Key: "morePrompt", Description: "Pause after each screen of a long listing: Y/Enter/Space one more screen, C the rest, N/Q stop"},
+		{Label: "Konfig: More Prompts Label", Key: "konfigMorePromptsLabel", Description: "Setting name in the form. Plain text, no colour codes; 15 characters fit"},
+		{Label: "Konfig: More Prompts Help", Key: "konfigMorePromptsHelp", Description: "Help line shown while More Prompts is highlighted"},
 	}
 }
